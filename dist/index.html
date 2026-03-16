@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendulum Motion Simulator</title>
+    <!-- MathJax for rendering math formulas -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script type="module" crossorigin src="/assets/index-lmBjTYoy.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Zu-_Qc93.css">
+</head>
+
+<body>
+    <header class="header-section glass-panel">
+        <h1>Pendulum Motion Simulator</h1>
+        <p>A simple harmonic motion learning tool</p>
+    </header>
+
+    <main class="main-layout">
+        <!-- Controls Panel -->
+        <section class="controls-panel glass-panel" aria-label="Controls">
+            <h2>Parameters</h2>
+
+            <div class="control-group">
+                <label for="length-slider" title="Length of the pendulum string">Pendulum Length (L): <span
+                        id="length-val">1.0</span> m</label>
+                <div class="slider-container">
+                    <span>0.1m</span>
+                    <input type="range" id="length-slider" min="0.1" max="10.0" step="0.1" value="1.0">
+                    <span>10m</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="gravity-slider" title="Local gravitational acceleration">Gravity (g): <span
+                        id="gravity-val">9.81</span> m/s²</label>
+                <div class="slider-container">
+                    <span>1.0</span>
+                    <input type="range" id="gravity-slider" min="1.0" max="25.0" step="0.1" value="9.81">
+                    <span>25.0</span>
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" data-g="9.81">Earth</button>
+                    <button class="preset-btn" data-g="1.62">Moon</button>
+                    <button class="preset-btn" data-g="3.71">Mars</button>
+                    <button class="preset-btn" data-g="24.79">Jupiter</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="angle-slider" title="Starting angle from vertical">Initial Angle (θ₀): <span
+                        id="angle-val">30</span>°</label>
+                <div class="slider-container">
+                    <span>5°</span>
+                    <input type="range" id="angle-slider" min="5" max="90" step="1" value="30">
+                    <span>90°</span>
+                </div>
+                <p id="angle-warning" class="warning-text hidden">⚠️ Large angles reduce formula accuracy</p>
+            </div>
+
+            <div class="action-buttons">
+                <button id="play-pause-btn" class="primary-btn">▶ Start</button>
+                <button id="reset-btn" class="secondary-btn">↺ Reset</button>
+            </div>
+
+            <div class="toggles">
+                <label class="toggle-label">
+                    <input type="checkbox" id="damping-toggle">
+                    <span class="toggle-text">Damping (Air Resistance)</span>
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" id="trail-toggle" checked>
+                    <span class="toggle-text">Show Motion Trail</span>
+                </label>
+            </div>
+
+            <div class="speed-controls">
+                <label>Playback Speed:</label>
+                <select id="speed-select">
+                    <option value="0.25">0.25x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="2">2x</option>
+                    <option value="4">4x</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Animation Canvas -->
+        <section class="canvas-panel glass-panel" aria-label="Simulation Canvas">
+            <div class="canvas-container">
+                <canvas id="sim-canvas"></canvas>
+            </div>
+        </section>
+
+        <!-- Data & Calculations Panel -->
+        <section class="data-panel glass-panel" aria-label="Calculations and Data">
+            <h2>Real-Time Data</h2>
+
+            <div class="data-box primary-calculation">
+                <h3>Calculated Values</h3>
+                <p>Time Period (T):</p>
+                <div class="formula-display">
+                    \( T = 2\pi \sqrt{\frac{L}{g}} \) <br>
+                    <strong>= <span id="calc-t">2.01</span> s</strong>
+                </div>
+                <p>Frequency (f):</p>
+                <div class="formula-display">
+                    \( f = \frac{1}{T} \) <br>
+                    <strong>= <span id="calc-f">0.50</span> Hz</strong>
+                </div>
+                <p>Angular Freq (ω):</p>
+                <div class="formula-display">
+                    \( \omega = \frac{2\pi}{T} \) <br>
+                    <strong>= <span id="calc-w">3.13</span> rad/s</strong>
+                </div>
+            </div>
+
+            <div class="data-box dynamic-values">
+                <h3>Dynamic Values</h3>
+                <ul>
+                    <li>Current Angle (θ): <span id="dyn-angle">30.00</span>°</li>
+                    <li>Angular Vel (ω): <span id="dyn-omega">0.00</span> rad/s</li>
+                    <li>Max Displ: <span id="dyn-max">30.00</span>°</li>
+                    <li>Elapsed Time: <span id="dyn-time">0.00</span> s</li>
+                </ul>
+            </div>
+
+            <div class="data-box energy-display">
+                <h3>Energy (m = 1kg)</h3>
+                <div class="energy-bar-container">
+                    <div class="energy-label">PE: <span id="dyn-pe">0.00</span> J</div>
+                    <div class="energy-bar-wrapper">
+                        <div id="pe-bar" class="energy-bar"></div>
+                    </div>
+                </div>
+                <div class="energy-bar-container">
+                    <div class="energy-label">KE: <span id="dyn-ke">0.00</span> J</div>
+                    <div class="energy-bar-wrapper">
+                        <div id="ke-bar" class="energy-bar"></div>
+                    </div>
+                </div>
+                <div class="energy-total">Total: <span id="dyn-total-e">0.00</span> J</div>
+            </div>
+        </section>
+
+        <!-- Educational Information Section -->
+        <section class="education-panel glass-panel" aria-label="Educational Information">
+            <h2>Educational Information</h2>
+            <div class="edu-grid">
+                <div class="edu-card">
+                    <h3>What is a Simple Pendulum?</h3>
+                    <p>A simple pendulum consists of a point mass (bob) suspended from a fixed point by a massless,
+                        inextensible string. Under the influence of gravity, it exhibits periodic motion called simple
+                        harmonic motion for small angles.</p>
+                </div>
+                <div class="edu-card">
+                    <h3>Key Physics Principles:</h3>
+                    <ul>
+                        <li>The period depends only on length and gravity, not on mass or amplitude (for small angles).
+                        </li>
+                        <li>Energy continuously converts between kinetic and potential.</li>
+                        <li>The restoring force is proportional to displacement (Hooke's Law analog).</li>
+                    </ul>
+                </div>
+                <div class="edu-card">
+                    <h3>Small Angle Approximation:</h3>
+                    <p>The formula \( T = 2\pi \sqrt{\frac{L}{g}} \) is most accurate for angles less than 15°. For
+                        larger angles, the actual period is longer than predicted because the restoring force (sin θ) is
+                        noticeably less than θ itself.</p>
+                </div>
+                <div class="edu-card">
+                    <h3>Real-World Applications:</h3>
+                    <ul>
+                        <li>Pendulum clocks for timekeeping</li>
+                        <li>Seismometers for earthquake detection</li>
+                        <li>Foucault pendulum demonstrating Earth's rotation</li>
+                        <li>Measuring local gravitational acceleration</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>
